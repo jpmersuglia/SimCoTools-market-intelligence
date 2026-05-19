@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sim Companies Market Signals</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">SimCoTools market intelligence</p>
+          <h1>Market Signals</h1>
+        </div>
+        <div class="status-panel">
+          <span id="apiStatus" class="status-dot idle"></span>
+          <span id="statusText">Waiting to scan</span>
+        </div>
+      </header>
+
+      <section class="controls" aria-label="Scan controls">
+        <label>
+          Realm
+          <select id="realmSelect">
+            <option value="0">Entrepreneurs (0)</option>
+            <option value="1">Magnates (1)</option>
+          </select>
+        </label>
+        <label>
+          Quality
+          <select id="qualitySelect">
+            <option value="0">Q0</option>
+            <option value="1">Q1</option>
+            <option value="2">Q2</option>
+            <option value="3">Q3</option>
+            <option value="4">Q4</option>
+            <option value="5">Q5</option>
+            <option value="6">Q6</option>
+            <option value="7">Q7</option>
+            <option value="8">Q8</option>
+            <option value="9">Q9</option>
+            <option value="10">Q10</option>
+            <option value="11">Q11</option>
+            <option value="12">Q12</option>
+          </select>
+        </label>
+        <label>
+          <span class="label-help">
+            Near low/high %
+            <span class="help-icon" tabindex="0" aria-label="Help for near low high percentage">?</span>
+            <span class="tooltip">Defines how close the current price must be to the historical low or high to score strongly. Lower values are stricter.</span>
+          </span>
+          <input id="edgePct" type="number" min="1" max="25" step="0.5" value="7" />
+        </label>
+        <label>
+          <span class="label-help">
+            Year match %
+            <span class="help-icon" tabindex="0" aria-label="Help for year match percentage">?</span>
+            <span class="tooltip">Defines how close today's price must be to the closest 1-year or 2-year historical price anchor. Lower values require a tighter match.</span>
+          </span>
+          <input id="yearPct" type="number" min="1" max="25" step="0.5" value="5" />
+        </label>
+        <label class="search-field autocomplete">
+          Search resources
+          <input id="resourceSearch" type="search" placeholder="Apples, power, steel..." />
+          <div id="suggestions" class="suggestions" role="listbox"></div>
+        </label>
+        <button id="addBuyButton" type="button">Add Buy</button>
+        <button id="addSellButton" type="button" class="sell-button">Add Sell</button>
+        <button id="scanButton" type="button">Refresh Lists</button>
+      </section>
+
+      <section class="watchlists" aria-label="Saved resource lists">
+        <div>
+          <div class="watchlist-heading">
+            <h2>Buy list</h2>
+            <small id="buyListCount">0 saved</small>
+          </div>
+          <div id="buyWatchlist" class="chip-list"></div>
+        </div>
+        <div>
+          <div class="watchlist-heading">
+            <h2>Sell list</h2>
+            <small id="sellListCount">0 saved</small>
+          </div>
+          <div id="sellWatchlist" class="chip-list"></div>
+        </div>
+      </section>
+
+      <section class="summary-strip" aria-label="Scan summary">
+        <div>
+          <span id="buyCount">0</span>
+          <small>Buy signals</small>
+        </div>
+        <div>
+          <span id="sellCount">0</span>
+          <small>Sell signals</small>
+        </div>
+        <div>
+          <span id="scannedCount">0</span>
+          <small>Resources scanned</small>
+        </div>
+        <div>
+          <span id="dataDepth">-</span>
+          <small>Oldest daily candle</small>
+        </div>
+      </section>
+
+      <nav class="tabs" aria-label="Signal tabs">
+        <button class="tab active" data-tab="buy" type="button">Buying</button>
+        <button class="tab" data-tab="sell" type="button">Selling</button>
+      </nav>
+
+      <section id="buyPanel" class="panel active" aria-labelledby="Buying">
+        <div class="panel-heading">
+          <h2>Buying signals</h2>
+          <p>Ranks resources where current price is close to long-term lows or close to the same price from one or two years ago.</p>
+        </div>
+        <div id="buyGrid" class="signal-grid"></div>
+      </section>
+
+      <section id="sellPanel" class="panel" aria-labelledby="Selling">
+        <div class="panel-heading">
+          <h2>Selling signals</h2>
+          <p>Ranks resources where current price is close to long-term highs or stretched above comparable historical anchors.</p>
+        </div>
+        <div id="sellGrid" class="signal-grid"></div>
+      </section>
+    </main>
+
+    <template id="signalCardTemplate">
+      <article class="signal-card">
+        <div class="card-top">
+          <div>
+            <h3></h3>
+            <p class="meta"></p>
+          </div>
+          <strong class="score"></strong>
+        </div>
+        <div class="price-row">
+          <span class="price"></span>
+          <span class="action-pill"></span>
+        </div>
+        <div class="sparkline"></div>
+        <div class="range-meter">
+          <span></span>
+          <div><i></i></div>
+          <span></span>
+        </div>
+        <dl class="metrics"></dl>
+      </article>
+    </template>
+
+    <script src="./app.js?v=4"></script>
+  </body>
+</html>
