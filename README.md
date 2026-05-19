@@ -17,6 +17,12 @@ The app uses:
 
 The browser calls the local `/api` proxy because SimCoTools does not currently send CORS headers for direct browser requests. The scanner spaces requests to stay under the documented 2 requests/second API limit.
 
+## Deploy
+
+The project is ready for Vercel. Vercel serves the static files and uses `api/[...path].js` as the `/api/...` proxy to SimCoTools.
+
+No build command is required.
+
 ## How to use the app
 
 1. Start the proxy server with `python server.py` and open `http://127.0.0.1:4173`.
