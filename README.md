@@ -10,6 +10,12 @@ Run the included local proxy server, then open the local URL:
 python server.py
 ```
 
+If Python is not available locally, you can run the Node fallback server instead:
+
+```powershell
+node server.mjs
+```
+
 The app uses:
 
 - `/v1/realms/{realm}/resources`
