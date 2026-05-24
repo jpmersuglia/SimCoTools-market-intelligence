@@ -482,6 +482,46 @@ button:disabled {
   font-weight: 800;
 }
 
+progress {
+  appearance: none;
+  border: none;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--panel-2);
+  width: 100px;
+}
+progress::-webkit-progress-bar {
+  background: var(--panel-2);
+  border-radius: 999px;
+}
+progress::-webkit-progress-value {
+  background: var(--buy);
+  border-radius: 999px;
+}
+progress::-moz-progress-bar {
+  background: var(--buy);
+  border-radius: 999px;
+}
+
+.watchlists-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 16px;
+  justify-content: flex-end;
+}
+.secondary-button {
+  background: var(--panel-2);
+  color: var(--text);
+  border: 1px solid var(--line);
+  font-weight: 600;
+  height: 32px;
+  font-size: 13px;
+  padding: 0 12px;
+}
+.secondary-button:hover {
+  background: var(--panel);
+}
+
 @media (max-width: 980px) {
   .controls {
     grid-template-columns: repeat(2, minmax(0, 1fr));

@@ -14,6 +14,7 @@
           <h1>Market Signals</h1>
         </div>
         <div class="status-panel">
+          <progress id="scanProgress" max="100" value="0" style="display: none;"></progress>
           <span id="apiStatus" class="status-dot idle"></span>
           <span id="statusText">Waiting to scan</span>
         </div>
@@ -66,10 +67,29 @@
           <input id="resourceSearch" type="search" placeholder="Apples, power, steel..." />
           <div id="suggestions" class="suggestions" role="listbox"></div>
         </label>
-        <button id="addBuyButton" type="button">Add Buy</button>
-        <button id="addSellButton" type="button" class="sell-button">Add Sell</button>
+        <label>
+          Target List
+          <select id="addModeSelect">
+            <option value="buy">Buy</option>
+            <option value="sell">Sell</option>
+          </select>
+        </label>
+        <label>
+          Sort by
+          <select id="sortSelect">
+            <option value="score">Score</option>
+            <option value="allTime">Distance (All-Time)</option>
+            <option value="1year">Distance (1-Year)</option>
+          </select>
+        </label>
         <button id="scanButton" type="button">Refresh Lists</button>
       </section>
+
+      <div class="watchlists-actions">
+        <button id="exportButton" type="button" class="secondary-button">Export Lists</button>
+        <button id="importButton" type="button" class="secondary-button">Import Lists</button>
+        <input type="file" id="importInput" accept=".json" style="display: none" />
+      </div>
 
       <section class="watchlists" aria-label="Saved resource lists">
         <div>

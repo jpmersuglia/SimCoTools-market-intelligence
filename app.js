@@ -6,6 +6,7 @@ const state = {
   realm: null,
   resources: [],
   selectedResourceId: null,
+  suggestionIndex: -1,
   results: [],
   watchlists: {
     buy: [],
@@ -24,15 +25,19 @@ const state = {
 const els = {
   apiStatus: document.querySelector("#apiStatus"),
   statusText: document.querySelector("#statusText"),
+  scanProgress: document.querySelector("#scanProgress"),
   realmSelect: document.querySelector("#realmSelect"),
   qualitySelect: document.querySelector("#qualitySelect"),
   edgePct: document.querySelector("#edgePct"),
   yearPct: document.querySelector("#yearPct"),
   resourceSearch: document.querySelector("#resourceSearch"),
   suggestions: document.querySelector("#suggestions"),
-  addBuyButton: document.querySelector("#addBuyButton"),
-  addSellButton: document.querySelector("#addSellButton"),
+  addModeSelect: document.querySelector("#addModeSelect"),
+  sortSelect: document.querySelector("#sortSelect"),
   scanButton: document.querySelector("#scanButton"),
+  exportButton: document.querySelector("#exportButton"),
+  importButton: document.querySelector("#importButton"),
+  importInput: document.querySelector("#importInput"),
   buyWatchlist: document.querySelector("#buyWatchlist"),
   sellWatchlist: document.querySelector("#sellWatchlist"),
   buyListCount: document.querySelector("#buyListCount"),
@@ -93,6 +98,14 @@ function saveWatchlists() {
 }
 
 async function loadResources(realm) {
+  const cacheKey = `simco-resources-cache-${realm}`;
+  try {
+    const cached = JSON.parse(localStorage.getItem(cacheKey));
+    if (cached && cached.timestamp && Date.now() - cached.timestamp < 24 * 60 * 60 * 1000) {
+      return cached.resources;
+    }
+  } catch (e) {}
+
   const first = await apiGet(`/v1/realms/${realm}/resources?page_size=50&page=1`);
   const pages = first.metadata?.lastPage || 1;
   const resources = [...(first.resources || [])];
@@ -103,10 +116,17 @@ async function loadResources(realm) {
     resources.push(...(data.resources || []));
   }
 
-  return resources
+  const finalResources = resources
     .filter((resource) => Number.isFinite(Number(resource.id)) && resource.name)
     .map((resource) => ({ ...resource, id: Number(resource.id) }))
     .sort((a, b) => a.name.localeCompare(b.name));
+
+  localStorage.setItem(cacheKey, JSON.stringify({
+    timestamp: Date.now(),
+    resources: finalResources
+  }));
+
+  return finalResources;
 }
 
 async function ensureResourcesLoaded(force = false) {
@@ -151,13 +171,15 @@ function renderSuggestions() {
 
   if (!suggestions.length) {
     els.suggestions.classList.remove("open");
+    state.suggestionIndex = -1;
     return;
   }
 
-  suggestions.forEach((resource) => {
+  suggestions.forEach((resource, index) => {
     const button = document.createElement("button");
     button.type = "button";
     button.className = "suggestion";
+    if (index === state.suggestionIndex) button.classList.add("active");
     button.innerHTML = `${resource.name}<br><small>Resource ${resource.id}</small>`;
     button.addEventListener("mousedown", (event) => {
       event.preventDefault();
@@ -381,12 +403,28 @@ function renderCard(signal, mode) {
 }
 
 function renderResults() {
+  const sortBy = els.sortSelect.value;
+  
+  const sortFn = (a, b) => {
+    if (sortBy === "allTime") {
+      const aDist = a.mode === "buy" ? a.nearLowPct : a.nearHighPct;
+      const bDist = b.mode === "buy" ? b.nearLowPct : b.nearHighPct;
+      return aDist - bDist; // lower distance is better
+    }
+    if (sortBy === "1year") {
+      const aDist = Math.abs(a.oneYearDiff != null ? a.oneYearDiff : Infinity);
+      const bDist = Math.abs(b.oneYearDiff != null ? b.oneYearDiff : Infinity);
+      return aDist - bDist; // lower distance is better
+    }
+    return a.mode === "buy" ? b.buyScore - a.buyScore : b.sellScore - a.sellScore;
+  };
+
   const buySignals = state.results
     .filter((signal) => signal.mode === "buy")
-    .sort((a, b) => b.buyScore - a.buyScore);
+    .sort(sortFn);
   const sellSignals = state.results
     .filter((signal) => signal.mode === "sell")
-    .sort((a, b) => b.sellScore - a.sellScore);
+    .sort(sortFn);
 
   els.buyGrid.innerHTML = "";
   els.sellGrid.innerHTML = "";
@@ -422,6 +460,8 @@ async function scanMarket() {
   };
 
   els.scanButton.disabled = true;
+  els.scanProgress.style.display = "block";
+  els.scanProgress.value = 0;
   state.results = [];
   state.stats = {
     selected: state.watchlists.buy.length + state.watchlists.sell.length,
@@ -440,6 +480,7 @@ async function scanMarket() {
       ...state.watchlists.sell.map((id) => ({ mode: "sell", id })),
     ];
     state.stats.selected = scanItems.length;
+    els.scanProgress.max = scanItems.length;
     renderResults();
 
     if (!scanItems.length) {
@@ -448,6 +489,7 @@ async function scanMarket() {
     }
 
     for (let index = 0; index < scanItems.length; index += 1) {
+      els.scanProgress.value = index + 1;
       const item = scanItems[index];
       const resource = resourceById(item.id);
       if (!resource) {
@@ -483,6 +525,7 @@ async function scanMarket() {
     setStatus(error.message, "error");
   } finally {
     els.scanButton.disabled = false;
+    els.scanProgress.style.display = "none";
   }
 }
 
@@ -496,8 +539,44 @@ document.querySelectorAll(".tab").forEach((button) => {
 });
 
 els.scanButton.addEventListener("click", scanMarket);
-els.addBuyButton.addEventListener("click", () => addSelectedResource("buy"));
-els.addSellButton.addEventListener("click", () => addSelectedResource("sell"));
+els.sortSelect.addEventListener("change", renderResults);
+
+els.exportButton.addEventListener("click", () => {
+  const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(state.watchlists, null, 2));
+  const downloadAnchorNode = document.createElement('a');
+  downloadAnchorNode.setAttribute("href", dataStr);
+  downloadAnchorNode.setAttribute("download", `simco-watchlists-${els.realmSelect.value}.json`);
+  document.body.appendChild(downloadAnchorNode);
+  downloadAnchorNode.click();
+  downloadAnchorNode.remove();
+});
+
+els.importButton.addEventListener("click", () => els.importInput.click());
+
+els.importInput.addEventListener("change", (event) => {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const imported = JSON.parse(e.target.result);
+      if (Array.isArray(imported.buy) && Array.isArray(imported.sell)) {
+        state.watchlists.buy = [...new Set([...state.watchlists.buy, ...imported.buy])].map(Number).filter(Number.isFinite);
+        state.watchlists.sell = [...new Set([...state.watchlists.sell, ...imported.sell])].map(Number).filter(Number.isFinite);
+        saveWatchlists();
+        renderWatchlists();
+        setStatus("Watchlists imported successfully", "ok");
+      } else {
+        setStatus("Invalid watchlist format", "error");
+      }
+    } catch (err) {
+      setStatus("Error reading file", "error");
+    }
+    els.importInput.value = "";
+  };
+  reader.readAsText(file);
+});
+
 els.realmSelect.addEventListener("change", async () => {
   state.results = [];
   state.selectedResourceId = null;
@@ -510,6 +589,7 @@ els.realmSelect.addEventListener("change", async () => {
 });
 els.resourceSearch.addEventListener("input", () => {
   state.selectedResourceId = null;
+  state.suggestionIndex = -1;
   renderSuggestions();
 });
 els.resourceSearch.addEventListener("focus", renderSuggestions);
@@ -517,11 +597,26 @@ els.resourceSearch.addEventListener("blur", () => {
   setTimeout(() => els.suggestions.classList.remove("open"), 120);
 });
 els.resourceSearch.addEventListener("keydown", (event) => {
-  if (event.key === "Enter") {
-    const first = getSuggestions()[0];
-    if (first) {
-      event.preventDefault();
-      selectResource(first);
+  const suggestions = getSuggestions();
+  if (event.key === "ArrowDown") {
+    event.preventDefault();
+    if (state.suggestionIndex < suggestions.length - 1) {
+      state.suggestionIndex++;
+      renderSuggestions();
+    }
+  } else if (event.key === "ArrowUp") {
+    event.preventDefault();
+    if (state.suggestionIndex > 0) {
+      state.suggestionIndex--;
+      renderSuggestions();
+    }
+  } else if (event.key === "Enter") {
+    event.preventDefault();
+    const idx = state.suggestionIndex >= 0 ? state.suggestionIndex : 0;
+    const selected = suggestions[idx];
+    if (selected) {
+      selectResource(selected);
+      addSelectedResource(els.addModeSelect.value);
     }
   }
 });
